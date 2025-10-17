@@ -3,12 +3,15 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 
+const BACKEND_URL = "https://mathseq-backend.onrender.com" // tu backend en Render
+
 export type UserRole = "estudiante" | "docente" | "administrador"
 
 export interface User {
   id: string
-  name: string
-  email: string
+  nombre: string
+  correo: string
+  id_rol: number
   role: UserRole
 }
 
@@ -25,37 +28,13 @@ interface AuthContextType {
   user: User | null
   progress: Progress
   login: (email: string, password: string) => Promise<boolean>
+  register: (nombre: string, correo: string, contrasena: string, id_rol: number) => Promise<boolean>
   logout: () => void
   updateProgress: (updates: Partial<Progress>) => void
   isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-// Mock users for demonstration (in production, this would come from a backend)
-const MOCK_USERS: (User & { password: string })[] = [
-  {
-    id: "1",
-    name: "Juan Pérez",
-    email: "estudiante@mathseq.com",
-    password: "estudiante123",
-    role: "estudiante",
-  },
-  {
-    id: "2",
-    name: "María García",
-    email: "docente@mathseq.com",
-    password: "docente123",
-    role: "docente",
-  },
-  {
-    id: "3",
-    name: "Carlos Admin",
-    email: "admin@mathseq.com",
-    password: "admin123",
-    role: "administrador",
-  },
-]
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -73,47 +52,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedUser = localStorage.getItem("mathseq_user")
     const storedProgress = localStorage.getItem("mathseq_progress")
 
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-
-    if (storedProgress) {
-      setProgress(JSON.parse(storedProgress))
-    }
+    if (storedUser) setUser(JSON.parse(storedUser))
+    if (storedProgress) setProgress(JSON.parse(storedProgress))
   }, [])
 
-  // Save user to localStorage when it changes
+  // Save user & progress
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("mathseq_user", JSON.stringify(user))
-    } else {
-      localStorage.removeItem("mathseq_user")
-    }
+    if (user) localStorage.setItem("mathseq_user", JSON.stringify(user))
+    else localStorage.removeItem("mathseq_user")
   }, [user])
 
-  // Save progress to localStorage when it changes
   useEffect(() => {
     localStorage.setItem("mathseq_progress", JSON.stringify(progress))
-
-    // Auto-unlock game when both teoria and practica are completed
     if (progress.teoriaCompleted && progress.practicaCompleted && !progress.juegoUnlocked) {
-      setProgress((prev) => ({ ...prev, juegoUnlocked: true }))
+      setProgress(prev => ({ ...prev, juegoUnlocked: true }))
     }
   }, [progress])
 
+  // ================= LOGIN =================
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const foundUser = MOCK_USERS.find((u) => u.email === email && u.password === password)
-
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser
-      setUser(userWithoutPassword)
-      return true
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/usuarios/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo: email, contrasena: password }),
+      })
+      const data = await res.json()
+      if (res.ok && data.user) {
+        setUser({
+          id: data.user.id_usuario.toString(),
+          nombre: data.user.nombre,
+          correo: data.user.correo,
+          id_rol: data.user.id_rol,
+          role: mapRole(data.user.id_rol),
+        })
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error("Error login:", err)
+      return false
     }
+  }
 
-    return false
+  // ================= REGISTER =================
+  const register = async (nombre: string, correo: string, contrasena: string, id_rol: number): Promise<boolean> => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/usuarios/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, correo, contrasena, id_rol }),
+      })
+      const data = await res.json()
+      return res.ok
+    } catch (err) {
+      console.error("Error register:", err)
+      return false
+    }
   }
 
   const logout = () => {
@@ -131,20 +126,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateProgress = (updates: Partial<Progress>) => {
-    setProgress((prev) => ({ ...prev, ...updates }))
+    setProgress(prev => ({ ...prev, ...updates }))
+  }
+
+  // ================= UTIL =================
+  const mapRole = (id_rol: number): UserRole => {
+    switch (id_rol) {
+      case 1: return "estudiante"
+      case 2: return "docente"
+      case 3: return "administrador"
+      default: return "estudiante"
+    }
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        progress,
-        login,
-        logout,
-        updateProgress,
-        isAuthenticated: !!user,
-      }}
-    >
+    <AuthContext.Provider value={{ user, progress, login, register, logout, updateProgress, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )
@@ -152,8 +148,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider")
   return context
 }
