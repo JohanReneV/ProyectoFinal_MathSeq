@@ -19,7 +19,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Redirigir según rol
+
       if (user.role === "estudiante") {
         router.push("/home")
       } else if (user.role === "docente") {
@@ -33,15 +33,14 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-
+  
     if (email.trim() && password.trim()) {
       setIsLoading(true)
-
-      const success = await login(email, password)
-
+      const { success, message } = await login(email, password)
+      setIsLoading(false)
+  
       if (!success) {
-        setError("Credenciales incorrectas. Por favor, intenta de nuevo.")
-        setIsLoading(false)
+        setError(message || "Error de inicio de sesión")
       }
     }
   }
