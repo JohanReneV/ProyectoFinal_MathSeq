@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [progress])
 
-  // ================= LOGIN =================
+  
   const login = async (correo: string, contrasena: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/usuarios/login`, {
