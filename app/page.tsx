@@ -14,13 +14,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [showDemoCredentials, setShowDemoCredentials] = useState(false)
   const router = useRouter()
   const { login, isAuthenticated, user } = useAuth()
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Redirect based on role
+      // Redirigir según rol
       if (user.role === "estudiante") {
         router.push("/home")
       } else if (user.role === "docente") {
@@ -40,27 +39,11 @@ export default function LoginPage() {
 
       const success = await login(email, password)
 
-      if (success) {
-        // Redirect will happen via useEffect
-      } else {
+      if (!success) {
         setError("Credenciales incorrectas. Por favor, intenta de nuevo.")
         setIsLoading(false)
       }
     }
-  }
-
-  const fillDemoCredentials = (role: "estudiante" | "docente" | "administrador") => {
-    if (role === "estudiante") {
-      setEmail("estudiante@mathseq.com")
-      setPassword("estudiante123")
-    } else if (role === "docente") {
-      setEmail("docente@mathseq.com")
-      setPassword("docente123")
-    } else {
-      setEmail("admin@mathseq.com")
-      setPassword("admin123")
-    }
-    setShowDemoCredentials(false)
   }
 
   return (
@@ -180,55 +163,6 @@ export default function LoginPage() {
               {isLoading ? "Entrando..." : "Iniciar Sesión"}
             </motion.button>
           </form>
-
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="mt-6">
-            <button
-              type="button"
-              onClick={() => setShowDemoCredentials(!showDemoCredentials)}
-              className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-[#1E88E5] transition-colors"
-            >
-              Ver credenciales de demostración
-            </button>
-
-            {showDemoCredentials && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mt-4 space-y-2 text-sm"
-              >
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">Estudiante:</p>
-                  <p className="text-gray-600 dark:text-gray-300">estudiante@mathseq.com / estudiante123</p>
-                  <button
-                    onClick={() => fillDemoCredentials("estudiante")}
-                    className="mt-2 text-[#1E88E5] hover:underline"
-                  >
-                    Usar estas credenciales
-                  </button>
-                </div>
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">Docente:</p>
-                  <p className="text-gray-600 dark:text-gray-300">docente@mathseq.com / docente123</p>
-                  <button
-                    onClick={() => fillDemoCredentials("docente")}
-                    className="mt-2 text-[#43A047] hover:underline"
-                  >
-                    Usar estas credenciales
-                  </button>
-                </div>
-                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">Administrador:</p>
-                  <p className="text-gray-600 dark:text-gray-300">admin@mathseq.com / admin123</p>
-                  <button
-                    onClick={() => fillDemoCredentials("administrador")}
-                    className="mt-2 text-purple-600 hover:underline"
-                  >
-                    Usar estas credenciales
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
         </motion.div>
       </AnimatePresence>
     </div>
