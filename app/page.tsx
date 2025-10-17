@@ -10,12 +10,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("demo@mathseq.com")
+  const [password, setPassword] = useState("demo1234")
   const [isLoading, setIsLoading] = useState(false)
+  const [isRegistering, setIsRegistering] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { login, isAuthenticated, user } = useAuth()
+  const { login, register, isAuthenticated, user } = useAuth()
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -42,6 +43,53 @@ export default function LoginPage() {
       if (!success) {
         setError(message || "Error de inicio de sesión")
       }
+    }
+  }
+
+  const handleRegister = async () => {
+    setError("")
+    if (!email.trim() || !password.trim()) return
+
+    setIsRegistering(true)
+    const nombre = email.split("@")[0] || "Usuario"
+    const result = await register(nombre, email, password, 1)
+    if (!result.success) {
+      setIsRegistering(false)
+      setError(result.message || "No se pudo registrar")
+      return
+    }
+    // Tras registrar, iniciar sesión automáticamente
+    const loginResult = await login(email, password)
+    setIsRegistering(false)
+    if (!loginResult.success) {
+      setError(loginResult.message || "Registrado pero no se pudo iniciar sesión")
+    }
+  }
+
+  const handleDemoLogin = async () => {
+    setError("")
+    const demoEmail = "demo@mathseq.com"
+    const demoPass = "demo1234"
+    setEmail(demoEmail)
+    setPassword(demoPass)
+    setIsLoading(true)
+    // Intentar login directo
+    const firstTry = await login(demoEmail, demoPass)
+    if (firstTry.success) {
+      setIsLoading(false)
+      return
+    }
+    // Si falla, registrar y luego login
+    const reg = await register("Demo", demoEmail, demoPass, 1)
+    if (!reg.success) {
+      setIsLoading(false)
+      setError(reg.message || "No se pudo crear usuario demo")
+      return
+    }
+    const secondTry = await login(demoEmail, demoPass)
+    setIsLoading(false)
+    if (!secondTry.success) {
+      setError(secondTry.message || "No se pudo iniciar sesión con demo")
     }
   }
 
@@ -160,6 +208,28 @@ export default function LoginPage() {
               className="w-full bg-gradient-to-r from-[#1E88E5] to-[#43A047] text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-70 text-lg"
             >
               {isLoading ? "Entrando..." : "Iniciar Sesión"}
+            </motion.button>
+            <motion.button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={isLoading || isRegistering}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full mt-3 bg-[#1E88E5] text-white py-3 rounded-xl font-semibold shadow hover:shadow-md transition-all disabled:opacity-70 text-base"
+            >
+              Entrar Demo
+            </motion.button>
+            <motion.button
+              type="button"
+              onClick={handleRegister}
+              disabled={isRegistering || isLoading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              animate={isRegistering ? { scale: [1, 1.05, 1] } : {}}
+              transition={isRegistering ? { repeat: Number.POSITIVE_INFINITY, duration: 0.6 } : {}}
+              className="w-full mt-3 border-2 border-[#1E88E5] text-[#1E88E5] dark:text-white dark:border-gray-700 py-4 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-70 text-lg"
+            >
+              {isRegistering ? "Registrando..." : "Registrar"}
             </motion.button>
           </form>
         </motion.div>
