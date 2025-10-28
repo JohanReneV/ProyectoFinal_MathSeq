@@ -20,7 +20,6 @@ export default function LoginPage() {
   const { login, isAuthenticated, user } = useAuth()
 
   useEffect(() => {
-    // Check for success message from URL params
     const urlParams = new URLSearchParams(window.location.search)
     const message = urlParams.get('message')
     if (message) {

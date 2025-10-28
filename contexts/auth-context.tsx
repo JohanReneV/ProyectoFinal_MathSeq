@@ -101,48 +101,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const extractMessage = (data: any, fallback: string) => (data?.error || data?.message || fallback)
 
     try {
+      console.log("🔐 Intentando login con:", { correo, contrasena: "***" })
 
+      // Intento 1: POST con correo/contrasena
       let res = await fetch(`${BACKEND_URL}/api/usuarios/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ correo, contrasena }),
       })
       let data: any = null
-      try { data = await res.json() } catch {}
+      try { 
+        data = await res.json() 
+        console.log("📡 Respuesta intento 1:", { status: res.status, data })
+      } catch (e) {
+        console.log("❌ Error parseando JSON intento 1:", e)
+      }
+      
       if (res.ok) {
         const u = normalizeUser(data)
-        if (setFromUser(u)) return { success: true }
+        if (setFromUser(u)) {
+          console.log("✅ Login exitoso con intento 1")
+          return { success: true }
+        }
+        console.log("⚠️ Usuario inválido en intento 1:", data)
         return { success: false, message: extractMessage(data, "Respuesta inválida del servidor") }
       }
 
-
+      // Intento 2: POST con email/password
+      console.log("🔄 Intentando formato email/password...")
       res = await fetch(`${BACKEND_URL}/api/usuarios/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: correo, password: contrasena }),
       })
       data = null
-      try { data = await res.json() } catch {}
+      try { 
+        data = await res.json() 
+        console.log("📡 Respuesta intento 2:", { status: res.status, data })
+      } catch (e) {
+        console.log("❌ Error parseando JSON intento 2:", e)
+      }
+      
       if (res.ok) {
         const u = normalizeUser(data)
-        if (setFromUser(u)) return { success: true }
+        if (setFromUser(u)) {
+          console.log("✅ Login exitoso con intento 2")
+          return { success: true }
+        }
+        console.log("⚠️ Usuario inválido en intento 2:", data)
         return { success: false, message: extractMessage(data, "Respuesta inválida del servidor") }
       }
 
       // Intento 3: GET con query params
+      console.log("🔄 Intentando GET con query params...")
       const params = new URLSearchParams({ correo, contrasena }).toString()
       res = await fetch(`${BACKEND_URL}/api/usuarios/login?${params}`, { method: "GET" })
       data = null
-      try { data = await res.json() } catch {}
+      try { 
+        data = await res.json() 
+        console.log("📡 Respuesta intento 3:", { status: res.status, data })
+      } catch (e) {
+        console.log("❌ Error parseando JSON intento 3:", e)
+      }
+      
       if (res.ok) {
         const u = normalizeUser(data)
-        if (setFromUser(u)) return { success: true }
+        if (setFromUser(u)) {
+          console.log("✅ Login exitoso con intento 3")
+          return { success: true }
+        }
+        console.log("⚠️ Usuario inválido en intento 3:", data)
         return { success: false, message: extractMessage(data, "Respuesta inválida del servidor") }
       }
 
+      console.log("❌ Todos los intentos fallaron. Último error:", { status: res.status, data })
       return { success: false, message: extractMessage(data, `Error ${res.status} al iniciar sesión`) }
     } catch (err) {
-      console.error("Error login:", err)
+      console.error("💥 Error de conexión:", err)
       return { success: false, message: "Error de conexión con el servidor" }
     }
   }
@@ -154,20 +189,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     id_rol: number = 1
   ): Promise<{ success: boolean; message?: string }> => {
     try {
+      console.log("📝 Intentando registro con:", { nombre, correo, contrasena: "***", id_rol })
+      
       const res = await fetch(`${BACKEND_URL}/api/usuarios/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre, correo, contrasena, id_rol }),
       })
-      const data = await res.json()
-
-      if (res.ok) {
-        return { success: true, message: data.message || "Registrado correctamente" }
+      
+      let data: any = null
+      try {
+        data = await res.json()
+        console.log("📡 Respuesta registro:", { status: res.status, data })
+      } catch (e) {
+        console.log("❌ Error parseando JSON registro:", e)
       }
 
-      return { success: false, message: data.error || data.message || "No se pudo registrar" }
+      if (res.ok) {
+        console.log("✅ Registro exitoso")
+        return { success: true, message: data?.message || "Registrado correctamente" }
+      }
+
+      console.log("❌ Error en registro:", { status: res.status, data })
+      return { success: false, message: data?.error || data?.message || "No se pudo registrar" }
     } catch (err) {
-      console.error("Error register:", err)
+      console.error("💥 Error de conexión en registro:", err)
       return { success: false, message: "Error de conexión con el servidor" }
     }
   }
