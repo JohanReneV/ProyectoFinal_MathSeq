@@ -137,6 +137,20 @@ export default function LoginPage() {
             Aprende Sucesiones Matemáticas
           </motion.p>
 
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            transition={{ delay: 0.5 }}
+            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6"
+          >
+            <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">Usuarios Demo Disponibles:</h3>
+            <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <div><strong>Estudiante:</strong> demo@mathseq.com / demo1234</div>
+              <div><strong>Profesor:</strong> profesor@mathseq.com / prof123</div>
+              <div><strong>Admin:</strong> admin@mathseq.com / admin123</div>
+            </div>
+          </motion.div>
+
           {error && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
               <Alert variant="destructive">

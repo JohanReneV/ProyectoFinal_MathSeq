@@ -72,6 +72,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   
   const login = async (correo: string, contrasena: string): Promise<{ success: boolean; message?: string }> => {
+    console.log("🔐 Intentando login con:", { correo, contrasena: "***" })
+
+    // Modo demo temporal - usuarios predefinidos
+    const demoUsers = [
+      { correo: "demo@mathseq.com", contrasena: "demo1234", nombre: "Usuario Demo", id_rol: 1 },
+      { correo: "admin@mathseq.com", contrasena: "admin123", nombre: "Administrador", id_rol: 3 },
+      { correo: "profesor@mathseq.com", contrasena: "prof123", nombre: "Profesor", id_rol: 2 },
+    ]
+
+    // Verificar si es un usuario demo
+    const demoUser = demoUsers.find(user => 
+      user.correo === correo && user.contrasena === contrasena
+    )
+
+    if (demoUser) {
+      console.log("✅ Login exitoso con usuario demo:", demoUser.correo)
+      setUser({
+        id: `demo_${Date.now()}`,
+        nombre: demoUser.nombre,
+        correo: demoUser.correo,
+        id_rol: demoUser.id_rol,
+        role: mapRole(demoUser.id_rol),
+      })
+      return { success: true }
+    }
+
+    // Si no es usuario demo, intentar con el backend
     const normalizeUser = (payload: any): { id?: string; nombre?: string; correo?: string; id_rol?: number } | null => {
       if (!payload) return null
       const u = payload.user ?? payload
@@ -101,8 +128,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const extractMessage = (data: any, fallback: string) => (data?.error || data?.message || fallback)
 
     try {
-      console.log("🔐 Intentando login con:", { correo, contrasena: "***" })
-
       // Intento 1: POST con correo/contrasena
       let res = await fetch(`${BACKEND_URL}/api/usuarios/login`, {
         method: "POST",
@@ -188,9 +213,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     contrasena: string,
     id_rol: number = 1
   ): Promise<{ success: boolean; message?: string }> => {
+    console.log("📝 Intentando registro con:", { nombre, correo, contrasena: "***", id_rol })
+    
+    // Modo demo temporal - simular registro exitoso
+    console.log("✅ Registro exitoso en modo demo")
+    return { success: true, message: "Registrado correctamente (modo demo)" }
+    
+    // Código del backend (comentado temporalmente)
+    /*
     try {
-      console.log("📝 Intentando registro con:", { nombre, correo, contrasena: "***", id_rol })
-      
       const res = await fetch(`${BACKEND_URL}/api/usuarios/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -216,6 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("💥 Error de conexión en registro:", err)
       return { success: false, message: "Error de conexión con el servidor" }
     }
+    */
   }
 
   const logout = () => {
