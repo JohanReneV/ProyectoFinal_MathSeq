@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
+import MathBlock from "@/components/MathBlock"
 import { Play, Pause, RotateCcw, TrendingUp, TrendingDown, Minus } from "lucide-react"
 
 interface SequenceVisualizerProps {
@@ -102,6 +103,8 @@ export default function SequenceVisualizer({
     }
   }
 
+  const toTeX = (s: string) => s.replace(/^\$\$?/, "").replace(/\$\$?$/, "")
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
@@ -137,7 +140,9 @@ export default function SequenceVisualizer({
 
       <div className="mb-4 p-4 bg-blue-50 rounded-lg">
         <p className="text-sm text-gray-700 mb-2 font-semibold">Fórmula:</p>
-        <div className="text-center text-lg">{getFormula()}</div>
+        <div className="text-center text-lg flex justify-center">
+          <MathBlock expression={toTeX(getFormula())} displayMode />
+        </div>
       </div>
 
       <AnimatePresence mode="wait">

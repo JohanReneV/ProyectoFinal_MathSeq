@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import AccessibilityControls from "@/components/accessibility-controls"
 import { AuthProvider } from "@/contexts/auth-context"
 import "./globals.css"
+import "katex/dist/katex.min.css"
 import { Suspense } from "react"
 
 const poppins = Poppins({

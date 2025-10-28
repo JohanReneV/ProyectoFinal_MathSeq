@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import SequenceVisualizer from "@/components/sequence-visualizer"
+import MathBlock from "@/components/MathBlock"
 import { ChevronLeft, ChevronRight, Home, Eye, CheckCircle } from "lucide-react"
 import { RouteGuard } from "@/components/route-guard"
 import { useAuth } from "@/contexts/auth-context"
@@ -51,12 +52,15 @@ export default function TeoriaPage() {
   const router = useRouter()
   const { updateProgress, progress } = useAuth()
 
+  const toTeX = (s: string) => s.replace(/^\$\$?/, "").replace(/\$\$?$/, "")
+
   const siguiente = () => {
     if (temaActual < temasTeoria.length - 1) {
       setTemaActual(temaActual + 1)
       setShowVisualizer(false)
     } else {
       updateProgress({ teoriaCompleted: true })
+      router.push("/home")
     }
   }
 
@@ -120,7 +124,9 @@ export default function TeoriaPage() {
 
                   <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg text-center">
                     <p className="font-semibold text-gray-700 dark:text-gray-200 mb-3">Fórmula:</p>
-                    <div className="text-2xl dark:text-gray-100">{tema.formula}</div>
+                    <div className="text-2xl dark:text-gray-100 flex justify-center">
+                      <MathBlock expression={toTeX(tema.formula)} displayMode />
+                    </div>
                   </div>
 
                   <div className="mt-8">
