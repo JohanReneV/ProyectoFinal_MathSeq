@@ -1,8 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect } from "react"
-
-const BACKEND_URL = "https://mathseq-backend.onrender.com"
+import { apiService } from "@/lib/api"
 
 export type UserRole = "estudiante" | "docente" | "administrador"
 
@@ -51,6 +50,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     score: 0,
   })
 
+  const cargarProgresoDelServidor = async () => {
+    try {
+      const response = await apiService.getProgreso()
+      if (response.success && response.data) {
+        const serverProgreso = response.data
+        setProgress({
+          teoriaCompleted: serverProgreso.teoria_completada,
+          practicaCompleted: serverProgreso.practica_completada,
+          juegoUnlocked: serverProgreso.juego_desbloqueado,
+          completedExercises: serverProgreso.ejercicios_completados,
+          totalExercises: serverProgreso.ejercicios_totales,
+          score: serverProgreso.puntuacion,
+        })
+      }
+    } catch (error) {
+      console.error("Error cargando progreso del servidor:", error)
+    }
+  }
+
+  const sincronizarConBackend = async () => {
+    if (!user?.id) return
+    try {
+      await apiService.updateProgreso({
+        teoria_completada: progress.teoriaCompleted,
+        practica_completada: progress.practicaCompleted,
+        juego_desbloqueado: progress.juegoUnlocked,
+        ejercicios_completados: progress.completedExercises,
+        ejercicios_totales: progress.totalExercises,
+        puntuacion: progress.score,
+      })
+    } catch (error) {
+      console.error("Error sincronizando progreso:", error)
+    }
+  }
+
   useEffect(() => {
     const storedUser = localStorage.getItem("mathseq_user")
     const storedProgress = localStorage.getItem("mathseq_progress")
@@ -68,37 +102,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (progress.teoriaCompleted && progress.practicaCompleted && !progress.juegoUnlocked) {
       setProgress(prev => ({ ...prev, juegoUnlocked: true }))
     }
+    
+    // Sincronizar con backend si hay usuario autenticado
+    if (user?.id) {
+      sincronizarConBackend()
+    }
   }, [progress])
 
   
   const login = async (correo: string, contrasena: string): Promise<{ success: boolean; message?: string }> => {
-    console.log("🔐 Intentando login con:", { correo, contrasena: "***" })
-
-    // Modo demo temporal - usuarios predefinidos
-    const demoUsers = [
-      { correo: "demo@mathseq.com", contrasena: "demo1234", nombre: "Usuario Demo", id_rol: 1 },
-      { correo: "admin@mathseq.com", contrasena: "admin123", nombre: "Administrador", id_rol: 3 },
-      { correo: "profesor@mathseq.com", contrasena: "prof123", nombre: "Profesor", id_rol: 2 },
-    ]
-
-    // Verificar si es un usuario demo
-    const demoUser = demoUsers.find(user => 
-      user.correo === correo && user.contrasena === contrasena
-    )
-
-    if (demoUser) {
-      console.log("✅ Login exitoso con usuario demo:", demoUser.correo)
-      setUser({
-        id: `demo_${Date.now()}`,
-        nombre: demoUser.nombre,
-        correo: demoUser.correo,
-        id_rol: demoUser.id_rol,
-        role: mapRole(demoUser.id_rol),
-      })
-      return { success: true }
+    // Validaciones básicas
+    if (!correo.trim() || !contrasena.trim()) {
+      return { success: false, message: "Correo y contraseña son obligatorios" }
     }
 
-    // Si no es usuario demo, intentar con el backend
     const normalizeUser = (payload: any): { id?: string; nombre?: string; correo?: string; id_rol?: number } | null => {
       if (!payload) return null
       const u = payload.user ?? payload
@@ -125,85 +142,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return true
     }
 
-    const extractMessage = (data: any, fallback: string) => (data?.error || data?.message || fallback)
+    const extractMessage = (data: any, fallback: string) => {
+      if (data?.error) return data.error
+      if (data?.message) return data.message
+      return fallback
+    }
 
     try {
-      // Intento 1: POST con correo/contrasena
-      let res = await fetch(`${BACKEND_URL}/api/usuarios/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo, contrasena }),
-      })
-      let data: any = null
-      try { 
-        data = await res.json() 
-        console.log("📡 Respuesta intento 1:", { status: res.status, data })
-      } catch (e) {
-        console.log("❌ Error parseando JSON intento 1:", e)
-      }
+      const response = await apiService.login(correo, contrasena)
       
-      if (res.ok) {
-        const u = normalizeUser(data)
-        if (setFromUser(u)) {
-          console.log("✅ Login exitoso con intento 1")
-          return { success: true }
-        }
-        console.log("⚠️ Usuario inválido en intento 1:", data)
-        return { success: false, message: extractMessage(data, "Respuesta inválida del servidor") }
+      if (!response.success) {
+        return { success: false, message: response.error || "Error al iniciar sesión" }
       }
 
-      // Intento 2: POST con email/password
-      console.log("🔄 Intentando formato email/password...")
-      res = await fetch(`${BACKEND_URL}/api/usuarios/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: correo, password: contrasena }),
-      })
-      data = null
-      try { 
-        data = await res.json() 
-        console.log("📡 Respuesta intento 2:", { status: res.status, data })
-      } catch (e) {
-        console.log("❌ Error parseando JSON intento 2:", e)
-      }
-      
-      if (res.ok) {
-        const u = normalizeUser(data)
-        if (setFromUser(u)) {
-          console.log("✅ Login exitoso con intento 2")
-          return { success: true }
-        }
-        console.log("⚠️ Usuario inválido en intento 2:", data)
-        return { success: false, message: extractMessage(data, "Respuesta inválida del servidor") }
+      if (!response.data) {
+        return { success: false, message: "Datos de usuario inválidos" }
       }
 
-      // Intento 3: GET con query params
-      console.log("🔄 Intentando GET con query params...")
-      const params = new URLSearchParams({ correo, contrasena }).toString()
-      res = await fetch(`${BACKEND_URL}/api/usuarios/login?${params}`, { method: "GET" })
-      data = null
-      try { 
-        data = await res.json() 
-        console.log("📡 Respuesta intento 3:", { status: res.status, data })
-      } catch (e) {
-        console.log("❌ Error parseando JSON intento 3:", e)
+      const u = normalizeUser(response.data)
+      if (setFromUser(u)) {
+        // Cargar progreso del servidor
+        await cargarProgresoDelServidor()
+        return { success: true }
       }
       
-      if (res.ok) {
-        const u = normalizeUser(data)
-        if (setFromUser(u)) {
-          console.log("✅ Login exitoso con intento 3")
-          return { success: true }
-        }
-        console.log("⚠️ Usuario inválido en intento 3:", data)
-        return { success: false, message: extractMessage(data, "Respuesta inválida del servidor") }
-      }
-
-      console.log("❌ Todos los intentos fallaron. Último error:", { status: res.status, data })
-      return { success: false, message: extractMessage(data, `Error ${res.status} al iniciar sesión`) }
+      return { success: false, message: "Datos de usuario inválidos" }
     } catch (err) {
-      console.error("💥 Error de conexión:", err)
-      return { success: false, message: "Error de conexión con el servidor" }
+      console.error("Error de conexión:", err)
+      return { success: false, message: "Error de conexión. Verifica tu internet" }
     }
   }
 
@@ -213,44 +179,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     contrasena: string,
     id_rol: number = 1
   ): Promise<{ success: boolean; message?: string }> => {
-    console.log("📝 Intentando registro con:", { nombre, correo, contrasena: "***", id_rol })
-    
-    // Modo demo temporal - simular registro exitoso
-    console.log("✅ Registro exitoso en modo demo")
-    return { success: true, message: "Registrado correctamente (modo demo)" }
-    
-    // Código del backend (comentado temporalmente)
-    /*
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/usuarios/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, correo, contrasena, id_rol }),
-      })
-      
-      let data: any = null
-      try {
-        data = await res.json()
-        console.log("📡 Respuesta registro:", { status: res.status, data })
-      } catch (e) {
-        console.log("❌ Error parseando JSON registro:", e)
-      }
-
-      if (res.ok) {
-        console.log("✅ Registro exitoso")
-        return { success: true, message: data?.message || "Registrado correctamente" }
-      }
-
-      console.log("❌ Error en registro:", { status: res.status, data })
-      return { success: false, message: data?.error || data?.message || "No se pudo registrar" }
-    } catch (err) {
-      console.error("💥 Error de conexión en registro:", err)
-      return { success: false, message: "Error de conexión con el servidor" }
+    // Validaciones básicas
+    if (!nombre.trim() || !correo.trim() || !contrasena.trim()) {
+      return { success: false, message: "Todos los campos son obligatorios" }
     }
-    */
+
+    if (contrasena.length < 6) {
+      return { success: false, message: "La contraseña debe tener al menos 6 caracteres" }
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(correo)) {
+      return { success: false, message: "Correo electrónico inválido" }
+    }
+
+    try {
+      const response = await apiService.register(nombre, correo, contrasena, id_rol)
+      
+      if (!response.success) {
+        return { success: false, message: response.error || "No se pudo registrar" }
+      }
+
+      return { success: true, message: response.message || "Registrado correctamente" }
+    } catch (err) {
+      console.error("Error de conexión en registro:", err)
+      return { success: false, message: "Error de conexión. Verifica tu internet" }
+    }
   }
 
   const logout = () => {
+    apiService.logout()
     setUser(null)
     setProgress({
       teoriaCompleted: false,

@@ -11,8 +11,8 @@ import { AlertCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("demo@mathseq.com")
-  const [password, setPassword] = useState("demo1234")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
@@ -43,34 +43,40 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccessMessage("")
   
-    if (email.trim() && password.trim()) {
-      setIsLoading(true)
+    // Validaciones del frontend
+    if (!email.trim() || !password.trim()) {
+      setError("Por favor completa todos los campos")
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError("Por favor ingresa un correo electrónico válido")
+      return
+    }
+
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
+
+    setIsLoading(true)
+    try {
       const { success, message } = await login(email, password)
-      setIsLoading(false)
-  
+      
       if (!success) {
         setError(message || "Error de inicio de sesión")
       }
+    } catch (err) {
+      setError("Error inesperado. Intenta nuevamente")
+    } finally {
+      setIsLoading(false)
     }
   }
 
 
-  const handleDemoLogin = async () => {
-    setError("")
-    const demoEmail = "demo@mathseq.com"
-    const demoPass = "demo1234"
-    setEmail(demoEmail)
-    setPassword(demoPass)
-    setIsLoading(true)
-    
-    const result = await login(demoEmail, demoPass)
-    setIsLoading(false)
-    
-    if (!result.success) {
-      setError(result.message || "No se pudo iniciar sesión con demo")
-    }
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -137,19 +143,6 @@ export default function LoginPage() {
             Aprende Sucesiones Matemáticas
           </motion.p>
 
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            transition={{ delay: 0.5 }}
-            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6"
-          >
-            <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">Usuarios Demo Disponibles:</h3>
-            <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-              <div><strong>Estudiante:</strong> demo@mathseq.com / demo1234</div>
-              <div><strong>Profesor:</strong> profesor@mathseq.com / prof123</div>
-              <div><strong>Admin:</strong> admin@mathseq.com / admin123</div>
-            </div>
-          </motion.div>
 
           {error && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
@@ -210,16 +203,6 @@ export default function LoginPage() {
               className="w-full bg-gradient-to-r from-[#1E88E5] to-[#43A047] text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-70 text-lg"
             >
               {isLoading ? "Entrando..." : "Iniciar Sesión"}
-            </motion.button>
-            <motion.button
-              type="button"
-              onClick={handleDemoLogin}
-              disabled={isLoading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full mt-3 bg-[#1E88E5] text-white py-3 rounded-xl font-semibold shadow hover:shadow-md transition-all disabled:opacity-70 text-base"
-            >
-              Entrar Demo
             </motion.button>
             
             <motion.div 

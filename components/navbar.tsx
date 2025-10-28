@@ -30,7 +30,7 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-gray-700 dark:text-gray-300 font-medium hidden sm:block">Hola, {user.name}</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium hidden sm:block">Hola, {user.nombre}</span>
             <span className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hidden sm:block">
               {user.role === "estudiante" ? "Estudiante" : user.role === "docente" ? "Docente" : "Admin"}
             </span>

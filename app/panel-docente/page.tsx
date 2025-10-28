@@ -8,8 +8,12 @@ import Footer from "@/components/footer"
 import { Home, Users, TrendingUp, Award, BookOpen, PenTool, Gamepad2, Download } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { RouteGuard } from "@/components/route-guard"
+import { apiService } from "@/lib/api"
+import { toast, ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
 interface StudentData {
+  id: string
   nombre: string
   teoria: number
   practica: number
@@ -20,57 +24,44 @@ interface StudentData {
 
 export default function PanelDocentePage() {
   const [estudiantes, setEstudiantes] = useState<StudentData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
     cargarDatosEstudiantes()
   }, [])
 
-  const cargarDatosEstudiantes = () => {
-    const datosSimulados: StudentData[] = [
-      {
-        nombre: "Ana García",
-        teoria: 100,
-        practica: 85,
-        juego: 90,
-        puntosTotal: 450,
-        promedioGeneral: 91.67,
-      },
-      {
-        nombre: "Carlos López",
-        teoria: 75,
-        practica: 80,
-        juego: 70,
-        puntosTotal: 380,
-        promedioGeneral: 75,
-      },
-      {
-        nombre: "María Rodríguez",
-        teoria: 90,
-        practica: 95,
-        juego: 85,
-        puntosTotal: 520,
-        promedioGeneral: 90,
-      },
-      {
-        nombre: "Juan Martínez",
-        teoria: 60,
-        practica: 65,
-        juego: 55,
-        puntosTotal: 280,
-        promedioGeneral: 60,
-      },
-      {
-        nombre: "Laura Sánchez",
-        teoria: 85,
-        practica: 90,
-        juego: 80,
-        puntosTotal: 470,
-        promedioGeneral: 85,
-      },
-    ]
-
-    setEstudiantes(datosSimulados)
+  const cargarDatosEstudiantes = async () => {
+    setIsLoading(true)
+    try {
+      const response = await apiService.getEstudiantes()
+      
+      if (response.success && response.data) {
+        // Transformar datos del backend al formato del frontend
+        const estudiantesData = response.data.map((estudiante) => ({
+          id: estudiante.id,
+          nombre: estudiante.nombre,
+          teoria: estudiante.teoria_progreso,
+          practica: estudiante.practica_progreso,
+          juego: estudiante.juego_progreso,
+          puntosTotal: estudiante.puntos_totales,
+          promedioGeneral: estudiante.promedio_general,
+        }))
+        
+        setEstudiantes(estudiantesData)
+      } else {
+        toast.error("Error cargando datos de estudiantes", {
+          position: "top-center",
+        })
+      }
+    } catch (error) {
+      console.error("Error cargando estudiantes:", error)
+      toast.error("Error de conexión", {
+        position: "top-center",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const promedioClase = {
@@ -121,6 +112,7 @@ export default function PanelDocentePage() {
     <RouteGuard allowedRoles={["docente", "administrador"]}>
       <div className="min-h-screen flex flex-col">
         <Navbar />
+        <ToastContainer />
 
         <main className="flex-1 container mx-auto px-4 py-8">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto">
@@ -132,13 +124,22 @@ export default function PanelDocentePage() {
                 <Home className="w-5 h-5" />
                 Volver al inicio
               </button>
-              <button
-                onClick={exportarDatos}
-                className="flex items-center gap-2 px-4 py-2 bg-[#43A047] text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                <Download className="w-5 h-5" />
-                Exportar Datos
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={cargarDatosEstudiantes}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1E88E5] text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                >
+                  {isLoading ? "Cargando..." : "Actualizar"}
+                </button>
+                <button
+                  onClick={exportarDatos}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#43A047] text-white rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  <Download className="w-5 h-5" />
+                  Exportar Datos
+                </button>
+              </div>
             </div>
 
             <motion.h1
