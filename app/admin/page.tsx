@@ -13,7 +13,6 @@ export default function AdminPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "content" | "settings">("overview")
 
-  // Mock data for demonstration
   const systemStats = {
     totalUsers: 127,
     activeStudents: 98,
